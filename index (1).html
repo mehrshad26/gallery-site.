@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>گالری عکس</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-image: url('https://images.unsplash.com/photo-1506765515384-028b60a970df?auto=format&fit=crop&w=1950&q=80');
+      background-size: cover;
+      background-position: center;
+      font-family: sans-serif;
+    }
+    #modal {
+      background-color: rgba(0,0,0,0.8);
+    }
+  </style>
+</head>
+<body class="text-white">
+
+  <!-- مودال نمایش عکس بزرگ -->
+  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div onclick="closeModal()" class="absolute inset-0 bg-black opacity-70"></div>
+    <img id="modal-img" class="z-50 max-h-[80%] rounded-lg shadow-lg">
+  </div>
+
+  <!-- صفحه ورود -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center bg-black bg-opacity-70">
+    <div class="bg-white text-black p-6 rounded-lg shadow-lg w-80">
+      <h2 class="text-xl font-bold text-center mb-4">ورود با شماره موبایل</h2>
+      <input id="phone-input" type="tel" placeholder="شماره موبایل" class="w-full p-2 border rounded mb-2" />
+      <input id="name-input" type="text" placeholder="نام شما" class="w-full p-2 border rounded mb-4" />
+      <button onclick="login()" class="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded">ورود</button>
+    </div>
+  </div>
+
+  <!-- سایت اصلی -->
+  <div id="main-site" class="hidden min-h-screen bg-black bg-opacity-60">
+    <header class="flex justify-between items-center p-4 bg-gray-900 bg-opacity-80">
+      <h1 class="text-xl font-bold cursor-pointer" onclick="navigateTo('home')">گالری هنری</h1>
+      <div class="flex gap-2 items-center">
+        <span id="user-role" class="text-sm bg-white text-black px-2 py-1 rounded"></span>
+        <span id="user-name" class="text-sm bg-white text-black px-2 py-1 rounded"></span>
+        <button id="upload-btn" onclick="navigateTo('upload')" class="hidden bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded">افزودن عکس</button>
+      </div>
+    </header>
+
+    <main class="p-4">
+      <section id="home-page">
+        <h2 class="text-lg font-semibold mb-3 cursor-pointer text-yellow-300 hover:underline" onclick="navigateTo('gallery');changeBg()">📷 گالری تصاویر</h2>
+        <p>برای دیدن تصاویر کلیک کنید</p>
+      </section>
+
+      <section id="gallery-page" class="hidden">
+        <button onclick="navigateTo('home')" class="mb-4 bg-gray-800 hover:bg-gray-700 text-white px-4 py-1 rounded">بازگشت</button>
+        <h2 class="text-lg font-semibold mb-3">تصاویر آپلود شده</h2>
+        <div id="gallery" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+      </section>
+
+      <section id="upload-page" class="hidden mt-6 p-4 bg-white bg-opacity-10 rounded shadow">
+        <button onclick="navigateTo('home')" class="mb-4 bg-gray-800 hover:bg-gray-700 text-white px-4 py-1 rounded">بازگشت</button>
+        <h3 class="mb-2 font-bold">بارگذاری تصویر جدید</h3>
+        <input type="text" id="image-url" placeholder="آدرس عکس" class="w-full p-2 mb-2 rounded text-black"/>
+        <button onclick="addImage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">افزودن</button>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const adminPhone = "09019697003";
+    let isAdmin = false;
+    let currentUserName = "";
+
+    function login() {
+      const phone = document.getElementById("phone-input").value.trim().replace(/[^\d]/g, '');
+      const name = document.getElementById("name-input").value.trim();
+      if (phone.length !== 11 || !name) {
+        alert("شماره و نام معتبر وارد کنید");
+        return;
+      }
+
+      isAdmin = phone === adminPhone;
+      currentUserName = name;
+      localStorage.setItem("loggedInPhone", phone);
+      localStorage.setItem("userName", name);
+      showSite(phone, name);
+    }
+
+    function showSite(phone, name) {
+      document.getElementById("login-screen").classList.add("hidden");
+      document.getElementById("main-site").classList.remove("hidden");
+
+      document.getElementById("user-role").textContent = isAdmin ? "مدیر" : "کاربر عادی";
+      document.getElementById("user-name").textContent = name;
+
+      if (isAdmin) {
+        document.getElementById("upload-btn").classList.remove("hidden");
+      }
+
+      loadImages();
+      navigateTo("home");
+    }
+
+    function addImage() {
+      const url = document.getElementById("image-url").value.trim();
+      if (!url) return;
+      const images = JSON.parse(localStorage.getItem("images") || "[]");
+      images.push(url);
+      localStorage.setItem("images", JSON.stringify(images));
+      document.getElementById("image-url").value = "";
+      loadImages();
+      navigateTo("gallery");
+    }
+
+    function loadImages() {
+      const gallery = document.getElementById("gallery");
+      gallery.innerHTML = "";
+      const images = JSON.parse(localStorage.getItem("images") || "[]");
+      images.forEach((url, index) => {
+        const container = document.createElement("div");
+        container.className = "relative group";
+
+        const img = document.createElement("img");
+        img.src = url;
+        img.className = "w-full h-48 object-cover rounded shadow-lg cursor-pointer";
+        img.onclick = () => openModal(url);
+
+        container.appendChild(img);
+
+        if (isAdmin) {
+          const btn = document.createElement("button");
+          btn.textContent = "🗑";
+          btn.className = "absolute top-2 left-2 bg-red-600 hover:bg-red-700 text-white rounded px-2 py-1";
+          btn.onclick = () => {
+            images.splice(index, 1);
+            localStorage.setItem("images", JSON.stringify(images));
+            loadImages();
+          };
+          container.appendChild(btn);
+        }
+
+        gallery.appendChild(container);
+      });
+    }
+
+    function navigateTo(page) {
+      ["home", "gallery", "upload"].forEach(p => {
+        document.getElementById(p + "-page").classList.add("hidden");
+      });
+      document.getElementById(page + "-page").classList.remove("hidden");
+    }
+
+    function changeBg() {
+      document.body.style.backgroundImage = "url('https://images.unsplash.com/photo-1481277542470-605612bd2d61?auto=format&fit=crop&w=1950&q=80')";
+    }
+
+    function openModal(url) {
+      document.getElementById("modal-img").src = url;
+      document.getElementById("modal").classList.remove("hidden");
+      document.getElementById("modal").classList.add("flex");
+    }
+
+    function closeModal() {
+      document.getElementById("modal").classList.add("hidden");
+      document.getElementById("modal").classList.remove("flex");
+    }
+
+    window.onload = function () {
+      const phone = localStorage.getItem("loggedInPhone");
+      const name = localStorage.getItem("userName");
+      if (phone && name) {
+        isAdmin = phone === adminPhone;
+        currentUserName = name;
+        showSite(phone, name);
+      }
+    }
+  </script>
+</body>
+</html>
